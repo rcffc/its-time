@@ -45,11 +45,13 @@ class Dashboard extends Component {
                 name
                 stop {
                   code
-                  name
                 }
               },
               to {
                 name
+                stop {
+                  code
+                }
               }
             }
           }
@@ -74,8 +76,6 @@ class Dashboard extends Component {
       })
       .catch(error => console.log(error));
   }
-
-  componentDidMount() {}
 
   getDisplayTime(timestamp) {
     let date = new Date(timestamp);
@@ -115,13 +115,13 @@ class Dashboard extends Component {
   }
 
   getDeparture(dep) {
-    if (dep == "Origin") return this.state.departure;
-    else return dep;
+    if (dep.name === "Origin") return this.state.departure;
+    else return dep.name + " [E" + dep.stop.code + "]";
   }
 
   getArrival(arr) {
-    if (arr == "Destination") return this.state.arrival;
-    else return arr;
+    if (arr.name === "Destination") return this.state.arrival;
+    else return arr.name + " [E" + arr.stop.code + "]";
   }
 
   render() {
@@ -150,9 +150,15 @@ class Dashboard extends Component {
                     <Timeline.Item key={leg_index}>
                       <Row>
                         <Col span={2}>{this.getDisplayMode(l.mode)} </Col>
-                        <Col span={2}>{this.getDisplayTime(l.startTime)}</Col>
-                        <Col span={6}>{this.getDeparture(l.from.name)}</Col>
-                        <Col span={6}>{this.getArrival(l.to.name)}</Col>
+                        <Col span={3}>
+                          <Row>{this.getDisplayTime(l.startTime)}</Row>
+                          <Row>{this.getDisplayTime(l.endTime)}</Row>
+                        </Col>
+                        <Col span={11}>
+                          <Row>{this.getDeparture(l.from)}</Row>
+                          <Row>{this.getArrival(l.to)}</Row>
+                        </Col>
+
                         <Col span={4}>
                           {this.getDisplayDuration(l.duration)} min
                         </Col>

@@ -1,12 +1,25 @@
 import React, { Component } from "react";
-import { Collapse, Timeline } from "antd";
+import { Collapse, Timeline, Icon, Row, Col, PageHeader } from "antd";
 import "antd/dist/antd.css";
 import "./Dashboard.css";
+import Walk from "./assets/icons/walk.svg";
+import Bus from "./assets/icons/bus.svg";
+import Tram from "./assets/icons/tram.svg";
+import Train from "./assets/icons/train.svg";
+import Subway from "./assets/icons/subway.svg";
 
 class Dashboard extends Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      departure: "Pohjoinen Rautatiekatu 25",
+      arrival: "Liusketie 3"
+    };
+
+    this.fireRequest();
+    setInterval(() => {
+      this.fireRequest();
+    }, 60000);
   }
 
   fireRequest() {
@@ -16,8 +29,8 @@ class Dashboard extends Component {
     const request = `
       {
         plan(
-          from: {lat: 60.234504, lon: 25.012588}
-          to: {lat: 60.169403, lon: 24.925805}
+          from: {lat: 60.169403, lon: 24.925805},
+          to: {lat: 60.234504, lon: 25.012588}
           numItineraries: 6
         ) {
           itineraries {
@@ -28,7 +41,16 @@ class Dashboard extends Component {
               duration
               realTime
               distance
-              transitLeg
+              from {
+                name
+                stop {
+                  code
+                  name
+                }
+              },
+              to {
+                name
+              }
             }
           }
         }
@@ -49,17 +71,11 @@ class Dashboard extends Component {
       })
       .then(res => {
         this.setState({ response: res });
-        // console.log(res);
       })
       .catch(error => console.log(error));
   }
 
-  componentDidMount() {
-    this.fireRequest();
-    setInterval(() => {
-      this.fireRequest();
-    }, 60000);
-  }
+  componentDidMount() {}
 
   getDisplayTime(timestamp) {
     let date = new Date(timestamp);
@@ -77,40 +93,73 @@ class Dashboard extends Component {
     return Math.ceil(duration / 60);
   }
 
+  getDisplayMode(mode) {
+    switch (mode) {
+      case "WALK":
+        return <Icon component={Walk} />;
+      case "BUS":
+        return <Icon component={Bus} />;
+      case "TRAM":
+        return <Icon component={Tram} />;
+      case "TRAIN":
+        return <Icon component={Train} />;
+      case "SUBWAY":
+        return <Icon component={Subway} />;
+      default:
+        return null;
+    }
+  }
+
   getTripDuration(trip) {
-    return this.getDisplayDuration(
-      trip.legs.map(leg => leg.duration).reduce((a, b) => a + b)
-    );
+    return trip.legs.map(leg => leg.duration).reduce((a, b) => a + b);
+  }
+
+  getDeparture(dep) {
+    if (dep == "Origin") return this.state.departure;
+    else return dep;
+  }
+
+  getArrival(arr) {
+    if (arr == "Destination") return this.state.arrival;
+    else return arr;
   }
 
   render() {
     const { Panel } = Collapse;
 
-    function callback(key) {}
-
     let collapse;
+
     if (this.state.response) {
       collapse = (
         <div>
           {this.state.response.data.plan.itineraries.map((it, it_index) => (
-            <Collapse defaultActiveKey={[it_index]} onChange={callback}>
+            <Collapse accordion defaultActiveKey={["0"]}>
               <Panel
                 header={
                   this.getDisplayTime(it.legs[0].startTime) +
-                  " " +
-                  this.getTripDuration(it) +
-                  "m"
+                  "\u{2192}" +
+                  this.getDisplayTime(it.legs[0].endTime) +
+                  " (" +
+                  this.getDisplayDuration(this.getTripDuration(it)) +
+                  "min)"
                 }
                 key={it_index}
               >
                 <Timeline>
                   {it.legs.map((l, leg_index) => (
-                    <Timeline.Item>
-                      {leg_index}
-                      Start Time: {this.getDisplayTime(l.startTime)}
-                      Distance: {this.getDisplayDistance(l.distance)}
-                      Mode: {l.mode}
-                      Duration: {this.getDisplayDuration(l.duration)}
+                    <Timeline.Item key={leg_index}>
+                      <Row>
+                        <Col span={2}>{this.getDisplayMode(l.mode)} </Col>
+                        <Col span={2}>{this.getDisplayTime(l.startTime)}</Col>
+                        <Col span={6}>{this.getDeparture(l.from.name)}</Col>
+                        <Col span={6}>{this.getArrival(l.to.name)}</Col>
+                        <Col span={4}>
+                          {this.getDisplayDuration(l.duration)} min
+                        </Col>
+                        <Col span={4}>
+                          {this.getDisplayDistance(l.distance)} km
+                        </Col>
+                      </Row>
                     </Timeline.Item>
                   ))}
                 </Timeline>
@@ -120,9 +169,21 @@ class Dashboard extends Component {
         </div>
       );
     } else {
-      collapse = <div>else</div>;
+      collapse = <div></div>;
     }
-    return <div>{collapse}</div>;
+
+    return (
+      <div>
+        <PageHeader
+          style={{
+            border: "1px solid rgb(235, 237, 240)"
+          }}
+          title="It's Time to Leave"
+          subTitle="From Pohjoinen Rautatiekatu 25 To Liusketie 3"
+        />
+        {collapse}
+      </div>
+    );
   }
 }
 

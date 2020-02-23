@@ -72,6 +72,7 @@ class Dashboard extends Component {
         return data.json();
       })
       .then(res => {
+        console.log(res);
         this.setState({ response: res });
       })
       .catch(error => console.log(error));
